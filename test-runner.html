@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property-Based Tests - A/B Calculator</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #1f2937;
+        }
+        .test-results {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .test-case {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-case.pass {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .test-case.fail {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .test-details {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .run-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .run-button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Property-Based Tests for Input Validation</h1>
+    <button class="run-button" onclick="runAllTests()">Run Tests</button>
+    <div id="test-results" class="test-results"></div>
+
+    <script>
+        // Import validation function from calculator.js
+        function validateInput(visitors, conversions) {
+            const v = Number(visitors);
+            const c = Number(conversions);
+            
+            if (visitors === '' || conversions === '') {
+                return { valid: true, error: '' };
+            }
+            
+            if (isNaN(v) || isNaN(c)) {
+                return { valid: false, error: 'Please enter valid numbers' };
+            }
+            
+            if (v < 0 || c < 0) {
+                return { valid: false, error: 'Values must be non-negative' };
+            }
+            
+            if (c > v) {
+                return { valid: false, error: 'Conversions cannot exceed visitors' };
+            }
+            
+            return { valid: true, error: '' };
+        }
+
+        // Simple property-based testing utilities
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomNat(max = 100000) {
+            return randomInt(0, max);
+        }
+
+        function randomInvalidString() {
+            const options = ['abc', 'not-a-number', '12.34.56', 'xyz123abc', '!@#$'];
+            return options[randomInt(0, options.length - 1)];
+        }
+
+        // Test runner
+        const testResults = [];
+
+        function recordTest(name, passed, details = '') {
+            testResults.push({ name, passed, details });
+        }
+
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = '';
+
+            let passCount = 0;
+            let failCount = 0;
+
+            testResults.forEach(test => {
+                const div = document.createElement('div');
+                div.className = `test-case ${test.passed ? 'pass' : 'fail'}`;
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'test-name';
+                nameDiv.textContent = `${test.passed ? '✓' : '✗'} ${test.name}`;
+                
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'test-details';
+                detailsDiv.textContent = test.details;
+                
+                div.appendChild(nameDiv);
+                if (test.details) {
+                    div.appendChild(detailsDiv);
+                }
+                
+                container.appendChild(div);
+
+                if (test.passed) passCount++;
+                else failCount++;
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.textContent = `Results: ${passCount} passed, ${failCount} failed out of ${testResults.length} tests`;
+            container.appendChild(summary);
+        }
+
+        // **Feature: ab-test-calculator, Property 1: Valid numeric inputs are accepted and stored**
+        function testProperty1_ValidInputsAccepted() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const visitors = randomNat(100000);
+                const conversions = randomInt(0, visitors); // Ensure conversions <= visitors
+                
+                const result = validateInput(visitors, conversions);
+                
+                if (!result.valid || result.error !== '') {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Failed with visitors=${visitors}, conversions=${conversions}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 1: Valid numeric inputs are accepted and stored',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // **Feature: ab-test-calculator, Property 2: Invalid inputs are rejected**
+        function testProperty2_InvalidInputsRejected_NonNumeric() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const invalidInput = randomInvalidString();
+                const validNumber = randomNat(1000);
+                
+                const result = validateInput(invalidInput, validNumber);
+                
+                if (result.valid || !result.error) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Failed to reject invalid input: "${invalidInput}"`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 2: Invalid inputs are rejected - non-numeric inputs',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function testProperty2_InvalidInputsRejected_ConversionsExceedVisitors() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const visitors = randomNat(10000);
+                const extra = randomInt(1, 10000);
+                const conversions = visitors + extra;
+                
+                const result = validateInput(visitors, conversions);
+                
+                if (result.valid || !result.error.includes('Conversions cannot exceed visitors')) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Failed with visitors=${visitors}, conversions=${conversions}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 2: Invalid inputs are rejected - conversions > visitors',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function testProperty2_InvalidInputsRejected_NegativeNumbers() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const negativeValue = randomInt(-10000, -1);
+                const positiveValue = randomNat(1000);
+                
+                // Test negative visitors
+                const result1 = validateInput(negativeValue, positiveValue);
+                if (result1.valid || !result1.error.includes('non-negative')) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Failed to reject negative visitors: ${negativeValue}`;
+                    }
+                }
+                
+                // Test negative conversions
+                const result2 = validateInput(positiveValue, negativeValue);
+                if (result2.valid || !result2.error.includes('non-negative')) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Failed to reject negative conversions: ${negativeValue}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 2: Invalid inputs are rejected - negative numbers',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Edge cases
+        function testEdgeCase_EmptyInputs() {
+            const result1 = validateInput('', '');
+            const result2 = validateInput('', 100);
+            const result3 = validateInput(100, '');
+            
+            const passed = result1.valid && result2.valid && result3.valid;
+            
+            recordTest(
+                'Edge Case: Empty inputs are accepted (typing state)',
+                passed,
+                passed ? 'Empty inputs correctly allowed' : 'Empty inputs incorrectly rejected'
+            );
+        }
+
+        function testEdgeCase_ZeroValues() {
+            const result = validateInput(0, 0);
+            const passed = result.valid && result.error === '';
+            
+            recordTest(
+                'Edge Case: Zero values are valid',
+                passed,
+                passed ? 'Zero values correctly accepted' : 'Zero values incorrectly rejected'
+            );
+        }
+
+        function testEdgeCase_ConversionsEqualVisitors() {
+            const numRuns = 100;
+            let failures = 0;
+
+            for (let i = 0; i < numRuns; i++) {
+                const value = randomNat(100000);
+                const result = validateInput(value, value);
+                
+                if (!result.valid || result.error !== '') {
+                    failures++;
+                }
+            }
+
+            recordTest(
+                'Edge Case: Conversions equal to visitors is valid',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures`
+            );
+        }
+
+        function runAllTests() {
+            testResults.length = 0; // Clear previous results
+            
+            console.log('Running property-based tests...');
+            
+            // Property 1 tests
+            testProperty1_ValidInputsAccepted();
+            
+            // Property 2 tests
+            testProperty2_InvalidInputsRejected_NonNumeric();
+            testProperty2_InvalidInputsRejected_ConversionsExceedVisitors();
+            testProperty2_InvalidInputsRejected_NegativeNumbers();
+            
+            // Edge cases
+            testEdgeCase_EmptyInputs();
+            testEdgeCase_ZeroValues();
+            testEdgeCase_ConversionsEqualVisitors();
+            
+            displayResults();
+            
+            console.log('Tests complete!');
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>

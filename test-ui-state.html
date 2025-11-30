@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI State Management Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>UI State Management Test</h1>
+    <div id="test-results"></div>
+
+    <!-- Include the calculator HTML structure -->
+    <div style="display: none;">
+        <div id="results-section" class="hidden">
+            <div class="results-content">
+                <div class="result-item">
+                    <span id="control-rate">-</span>
+                </div>
+                <div class="result-item">
+                    <span id="variant-rate">-</span>
+                </div>
+                <div class="result-item">
+                    <span id="confidence-level">-</span>
+                </div>
+                <div id="verdict-badge"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="calculator.js"></script>
+    <script>
+        const testResults = document.getElementById('test-results');
+
+        function runTest(name, testFn) {
+            try {
+                testFn();
+                testResults.innerHTML += `<div class="test-result pass">✓ ${name}</div>`;
+                return true;
+            } catch (error) {
+                testResults.innerHTML += `<div class="test-result fail">✗ ${name}: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message);
+            }
+        }
+
+        // Test 1: clearResults function exists
+        runTest('clearResults function exists', () => {
+            assert(typeof clearResults === 'function', 'clearResults should be a function');
+        });
+
+        // Test 2: clearResults hides results section
+        runTest('clearResults hides results section', () => {
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.classList.remove('hidden');
+            clearResults();
+            assert(resultsSection.classList.contains('hidden'), 'Results section should be hidden');
+        });
+
+        // Test 3: clearResults resets result values
+        runTest('clearResults resets result values to default', () => {
+            const controlRate = document.getElementById('control-rate');
+            const variantRate = document.getElementById('variant-rate');
+            const confidenceLevel = document.getElementById('confidence-level');
+            
+            // Set some values
+            controlRate.textContent = '10.5%';
+            variantRate.textContent = '12.3%';
+            confidenceLevel.textContent = '95%';
+            
+            // Clear results
+            clearResults();
+            
+            // Check values are reset
+            assert(controlRate.textContent === '-', 'Control rate should be reset to "-"');
+            assert(variantRate.textContent === '-', 'Variant rate should be reset to "-"');
+            assert(confidenceLevel.textContent === '-', 'Confidence level should be reset to "-"');
+        });
+
+        // Test 4: clearResults clears verdict badge
+        runTest('clearResults clears verdict badge', () => {
+            const verdictBadge = document.getElementById('verdict-badge');
+            
+            // Set badge content and classes
+            verdictBadge.textContent = 'Significant Winner!';
+            verdictBadge.classList.add('significant');
+            
+            // Clear results
+            clearResults();
+            
+            // Check badge is cleared
+            assert(verdictBadge.textContent === '', 'Verdict badge text should be empty');
+            assert(!verdictBadge.classList.contains('significant'), 'Verdict badge should not have significant class');
+            assert(!verdictBadge.classList.contains('not-significant'), 'Verdict badge should not have not-significant class');
+        });
+
+        // Test 5: Results only display after calculate button is clicked
+        runTest('Results section starts hidden', () => {
+            const resultsSection = document.getElementById('results-section');
+            clearResults(); // Ensure clean state
+            assert(resultsSection.classList.contains('hidden'), 'Results section should start hidden');
+        });
+
+        console.log('All UI state management tests completed');
+    </script>
+</body>
+</html>

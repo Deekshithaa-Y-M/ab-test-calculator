@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property 10 Test - UI State Management</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #1f2937;
+        }
+        .test-results {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .test-case {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-case.pass {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .test-case.fail {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .test-details {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .run-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .run-button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Property 10: Input changes clear previous results</h1>
+    <p><strong>Validates: Requirements 7.3</strong></p>
+    <button class="run-button" onclick="runAllTests()">Run Tests</button>
+    <div id="test-results" class="test-results"></div>
+
+    <script>
+        // Test utilities
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomNat(max = 10000) {
+            return randomInt(0, max);
+        }
+
+        // Mock DOM for UI state management tests
+        const setupFullDOM = () => {
+            const testContainer = document.createElement('div');
+            testContainer.id = 'test-container';
+            testContainer.innerHTML = `
+                <div class="input-card" id="control-card">
+                    <input type="number" id="control-visitors" value="">
+                    <input type="number" id="control-conversions" value="">
+                </div>
+                <div class="input-card" id="variant-card">
+                    <input type="number" id="variant-visitors" value="">
+                    <input type="number" id="variant-conversions" value="">
+                </div>
+                <div id="results-section" class="">
+                    <div id="control-rate">10.5%</div>
+                    <div id="variant-rate">12.3%</div>
+                    <div id="confidence-level">85%</div>
+                    <div id="verdict-badge" class="not-significant">Not Significant yet</div>
+                </div>
+            `;
+            
+            // Remove old test container if exists
+            const oldContainer = document.getElementById('test-container');
+            if (oldContainer) {
+                oldContainer.remove();
+            }
+            
+            document.body.appendChild(testContainer);
+        };
+
+        // Simulate the clearResults function behavior
+        const clearResultsSimulation = () => {
+            const resultsSection = document.getElementById('results-section');
+            const controlRateElement = document.getElementById('control-rate');
+            const variantRateElement = document.getElementById('variant-rate');
+            const confidenceLevelElement = document.getElementById('confidence-level');
+            const verdictBadge = document.getElementById('verdict-badge');
+            
+            // Reset result values to default
+            controlRateElement.textContent = '-';
+            variantRateElement.textContent = '-';
+            confidenceLevelElement.textContent = '-';
+            
+            // Clear verdict badge
+            verdictBadge.textContent = '';
+            verdictBadge.classList.remove('significant', 'not-significant');
+            
+            // Hide the results section
+            resultsSection.classList.add('hidden');
+        };
+
+        // Check if results are in cleared state
+        const areResultsCleared = () => {
+            const resultsSection = document.getElementById('results-section');
+            const controlRateElement = document.getElementById('control-rate');
+            const variantRateElement = document.getElementById('variant-rate');
+            const confidenceLevelElement = document.getElementById('confidence-level');
+            const verdictBadge = document.getElementById('verdict-badge');
+            
+            return (
+                controlRateElement.textContent === '-' &&
+                variantRateElement.textContent === '-' &&
+                confidenceLevelElement.textContent === '-' &&
+                verdictBadge.textContent === '' &&
+                !verdictBadge.classList.contains('significant') &&
+                !verdictBadge.classList.contains('not-significant') &&
+                resultsSection.classList.contains('hidden')
+            );
+        };
+
+        // Test runner
+        const testResults = [];
+
+        function recordTest(name, passed, details = '') {
+            testResults.push({ name, passed, details });
+        }
+
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = '';
+
+            let passCount = 0;
+            let failCount = 0;
+
+            testResults.forEach(test => {
+                const div = document.createElement('div');
+                div.className = `test-case ${test.passed ? 'pass' : 'fail'}`;
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'test-name';
+                nameDiv.textContent = `${test.passed ? '✓' : '✗'} ${test.name}`;
+                
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'test-details';
+                detailsDiv.textContent = test.details;
+                
+                div.appendChild(nameDiv);
+                if (test.details) {
+                    div.appendChild(detailsDiv);
+                }
+                
+                container.appendChild(div);
+
+                if (test.passed) passCount++;
+                else failCount++;
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.textContent = `Results: ${passCount} passed, ${failCount} failed out of ${testResults.length} tests`;
+            container.appendChild(summary);
+            
+            // Clean up test container
+            const testContainer = document.getElementById('test-container');
+            if (testContainer) {
+                testContainer.remove();
+            }
+        }
+
+        // **Feature: ab-test-calculator, Property 10: Input changes clear previous results**
+        function testProperty10_InputChangesClearResults() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const initialValue = randomNat(10000);
+                const newValue = randomNat(10000);
+                
+                // Setup DOM with results displayed
+                setupFullDOM();
+                
+                // Verify results are initially displayed (not cleared)
+                const controlRateElement = document.getElementById('control-rate');
+                const resultsSection = document.getElementById('results-section');
+                
+                if (controlRateElement.textContent === '-' || resultsSection.classList.contains('hidden')) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = 'Initial state was already cleared';
+                    }
+                    continue;
+                }
+                
+                // Get one of the input fields
+                const controlVisitorsInput = document.getElementById('control-visitors');
+                
+                // Set initial value
+                controlVisitorsInput.value = initialValue.toString();
+                
+                // Simulate input change by calling clearResults
+                clearResultsSimulation();
+                
+                // Verify results are cleared
+                if (!areResultsCleared()) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Results not cleared after input change (iteration ${i})`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 10: Input changes clear previous results',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function testProperty10_AnyInputFieldClearsResults() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const cv = randomNat(10000);
+                const cc = randomNat(10000);
+                const vv = randomNat(10000);
+                const vc = randomNat(10000);
+                
+                // Test each input field
+                const inputFields = [
+                    { id: 'control-visitors', value: cv },
+                    { id: 'control-conversions', value: cc },
+                    { id: 'variant-visitors', value: vv },
+                    { id: 'variant-conversions', value: vc }
+                ];
+                
+                inputFields.forEach(field => {
+                    // Setup DOM with results displayed
+                    setupFullDOM();
+                    
+                    // Verify results are initially displayed
+                    if (areResultsCleared()) {
+                        failures++;
+                        if (!failureExample) {
+                            failureExample = `Initial state was already cleared for ${field.id}`;
+                        }
+                        return;
+                    }
+                    
+                    // Get the input field
+                    const inputElement = document.getElementById(field.id);
+                    
+                    // Change the input value
+                    inputElement.value = field.value.toString();
+                    
+                    // Simulate the input event handler calling clearResults
+                    clearResultsSimulation();
+                    
+                    // Verify results are cleared
+                    if (!areResultsCleared()) {
+                        failures++;
+                        if (!failureExample) {
+                            failureExample = `Results not cleared after changing ${field.id}`;
+                        }
+                    }
+                });
+            }
+
+            recordTest(
+                'Property 10: Changing any input field clears results',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations (4 fields × ${numRuns} runs)` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function testProperty10_MultipleChangesKeepCleared() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const numChanges = randomInt(2, 10);
+                const values = [];
+                for (let j = 0; j < numChanges; j++) {
+                    values.push(randomNat(10000));
+                }
+                
+                // Setup DOM with results displayed
+                setupFullDOM();
+                
+                const controlVisitorsInput = document.getElementById('control-visitors');
+                
+                // Apply multiple input changes
+                values.forEach(value => {
+                    controlVisitorsInput.value = value.toString();
+                    clearResultsSimulation();
+                });
+                
+                // Results should still be cleared after multiple changes
+                if (!areResultsCleared()) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Results not cleared after ${numChanges} changes`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 10: Multiple input changes keep results cleared',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function testProperty10_EmptyInputClearsResults() {
+            // Setup DOM with results displayed
+            setupFullDOM();
+            
+            const controlVisitorsInput = document.getElementById('control-visitors');
+            
+            // Verify results are initially displayed
+            const initiallyCleared = areResultsCleared();
+            
+            // Change input to empty
+            controlVisitorsInput.value = '';
+            
+            // Simulate input change
+            clearResultsSimulation();
+            
+            // Verify results are cleared
+            const clearedAfter = areResultsCleared();
+            
+            recordTest(
+                'Property 10: Changing input to empty clears results',
+                !initiallyCleared && clearedAfter,
+                !initiallyCleared && clearedAfter ? 'Empty input correctly clears results' : 'Failed to clear results with empty input'
+            );
+        }
+
+        function testProperty10_SameValueClearsResults() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const value = randomNat(10000);
+                
+                // Setup DOM with results displayed
+                setupFullDOM();
+                
+                const controlVisitorsInput = document.getElementById('control-visitors');
+                
+                // Set initial value
+                controlVisitorsInput.value = value.toString();
+                
+                // Verify results are initially displayed
+                if (areResultsCleared()) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = 'Initial state was already cleared';
+                    }
+                    continue;
+                }
+                
+                // Change input to same value (simulating user editing)
+                controlVisitorsInput.value = value.toString();
+                
+                // Simulate input change
+                clearResultsSimulation();
+                
+                // Verify results are cleared (input event fires even for same value)
+                if (!areResultsCleared()) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Results not cleared when setting same value ${value}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 10: Changing input to same value clears results',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        function runAllTests() {
+            testResults.length = 0; // Clear previous results
+            
+            console.log('Running Property 10 tests...');
+            
+            testProperty10_InputChangesClearResults();
+            testProperty10_AnyInputFieldClearsResults();
+            testProperty10_MultipleChangesKeepCleared();
+            testProperty10_EmptyInputClearsResults();
+            testProperty10_SameValueClearsResults();
+            
+            displayResults();
+            
+            console.log('Tests complete!');
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>

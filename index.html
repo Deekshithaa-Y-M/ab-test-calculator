@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A/B Test Significance Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header role="banner">
+            <h1>A/B Test Significance Calculator</h1>
+        </header>
+
+        <main role="main">
+            <section class="input-section" aria-label="Test data input">
+                <div class="input-card">
+                    <h2>Group A (Control)</h2>
+                    <div class="input-group">
+                        <label for="control-visitors">Visitors</label>
+                        <input type="number" id="control-visitors" min="0" step="1" placeholder="0" aria-required="true" aria-describedby="control-visitors-desc">
+                        <span id="control-visitors-desc" class="sr-only">Enter the number of visitors for the control group</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="control-conversions">Conversions</label>
+                        <input type="number" id="control-conversions" min="0" step="1" placeholder="0" aria-required="true" aria-describedby="control-conversions-desc">
+                        <span id="control-conversions-desc" class="sr-only">Enter the number of conversions for the control group</span>
+                    </div>
+                </div>
+
+                <div class="input-card">
+                    <h2>Group B (Variant)</h2>
+                    <div class="input-group">
+                        <label for="variant-visitors">Visitors</label>
+                        <input type="number" id="variant-visitors" min="0" step="1" placeholder="0" aria-required="true" aria-describedby="variant-visitors-desc">
+                        <span id="variant-visitors-desc" class="sr-only">Enter the number of visitors for the variant group</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="variant-conversions">Conversions</label>
+                        <input type="number" id="variant-conversions" min="0" step="1" placeholder="0" aria-required="true" aria-describedby="variant-conversions-desc">
+                        <span id="variant-conversions-desc" class="sr-only">Enter the number of conversions for the variant group</span>
+                    </div>
+                </div>
+            </section>
+
+            <button id="calculate-btn" class="calculate-button" aria-label="Calculate statistical significance">Calculate Significance</button>
+
+            <section id="results-section" class="results-section hidden" aria-live="polite" aria-label="Calculation results">
+                <div class="results-content">
+                    <div class="result-item">
+                        <span class="result-label">Control Conversion Rate:</span>
+                        <span id="control-rate" class="result-value" aria-label="Control conversion rate">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Variant Conversion Rate:</span>
+                        <span id="variant-rate" class="result-value" aria-label="Variant conversion rate">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Confidence Level:</span>
+                        <span id="confidence-level" class="result-value" aria-label="Confidence level">-</span>
+                    </div>
+                    <div id="verdict-badge" class="verdict-badge" role="status" aria-live="polite"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="calculator.js"></script>
+</body>
+</html>

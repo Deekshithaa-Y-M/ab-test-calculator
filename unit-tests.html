@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Tests - A/B Test Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-header {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-header h1 {
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .test-header p {
+            color: #6b7280;
+            margin: 0;
+        }
+        .test-results {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .test-suite {
+            margin-bottom: 24px;
+        }
+        .test-suite-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .test-case {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-case.pass {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .test-case.fail {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .test-details {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .run-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .run-button:hover {
+            background: #2563eb;
+        }
+        #test-app {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-header">
+        <h1>Unit Tests for A/B Test Calculator</h1>
+        <p>Tests edge cases and UI elements (Requirements: 2.3, 2.4, 7.1, 7.2, 1.1, 1.2, 2.1, 6.1, 6.2, 6.4)</p>
+        <button class="run-button" onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div id="test-results" class="test-results"></div>
+
+    <!-- Hidden test application instance -->
+    <div id="test-app"></div>
+
+    <!-- Load calculator.js -->
+    <script src="calculator.js"></script>
+
+    <script>
+        // Test utilities
+        const testResults = [];
+        let testApp = null;
+
+        function recordTest(suiteName, testName, passed, details = '') {
+            testResults.push({ suite: suiteName, name: testName, passed, details });
+        }
+
+        function setupTestApp() {
+            // Create a fresh instance of the calculator UI for testing
+            const container = document.getElementById('test-app');
+            container.innerHTML = `
+                <div class="container">
+                    <header>
+                        <h1>A/B Test Significance Calculator</h1>
+                    </header>
+
+                    <section class="input-section">
+                        <div class="input-card">
+                            <h2>Group A (Control)</h2>
+                            <div class="input-group">
+                                <label for="test-control-visitors">Visitors</label>
+                                <input type="number" id="test-control-visitors" min="0" step="1" placeholder="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="test-control-conversions">Conversions</label>
+                                <input type="number" id="test-control-conversions" min="0" step="1" placeholder="0">
+                            </div>
+                        </div>
+
+                        <div class="input-card">
+                            <h2>Group B (Variant)</h2>
+                            <div class="input-group">
+                                <label for="test-variant-visitors">Visitors</label>
+                                <input type="number" id="test-variant-visitors" min="0" step="1" placeholder="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="test-variant-conversions">Conversions</label>
+                                <input type="number" id="test-variant-conversions" min="0" step="1" placeholder="0">
+                            </div>
+                        </div>
+                    </section>
+
+                    <button id="test-calculate-btn" class="calculate-button">Calculate Significance</button>
+
+                    <section id="test-results-section" class="results-section hidden">
+                        <div class="results-content">
+                            <div class="result-item">
+                                <span class="result-label">Control Conversion Rate:</span>
+                                <span id="test-control-rate" class="result-value">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Variant Conversion Rate:</span>
+                                <span id="test-variant-rate" class="result-value">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Confidence Level:</span>
+                                <span id="test-confidence-level" class="result-value">-</span>
+                            </div>
+                            <div id="test-verdict-badge" class="verdict-badge"></div>
+                        </div>
+                    </section>
+                </div>
+            `;
+
+            // Set up event listeners for test app
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            calculateBtn.addEventListener('click', function() {
+                const controlData = {
+                    visitors: controlVisitors.value,
+                    conversions: controlConversions.value
+                };
+                const variantData = {
+                    visitors: variantVisitors.value,
+                    conversions: variantConversions.value
+                };
+                
+                // Use the global performAnalysis function but update test elements
+                const results = performAnalysisForTest(controlData, variantData);
+            });
+
+            return container;
+        }
+
+        // Modified performAnalysis for testing
+        function performAnalysisForTest(controlData, variantData) {
+            const validation1 = validateInput(controlData.visitors, controlData.conversions);
+            const validation2 = validateInput(variantData.visitors, variantData.conversions);
+            
+            if (!validation1.valid || !validation2.valid || 
+                controlData.visitors === '' || controlData.conversions === '' ||
+                variantData.visitors === '' || variantData.conversions === '') {
+                return null;
+            }
+
+            const controlVisitors = Number(controlData.visitors);
+            const controlConversions = Number(controlData.conversions);
+            const variantVisitors = Number(variantData.visitors);
+            const variantConversions = Number(variantData.conversions);
+
+            const controlRate = calculateConversionRate(controlConversions, controlVisitors);
+            const variantRate = calculateConversionRate(variantConversions, variantVisitors);
+            const zScore = calculateZScore(controlVisitors, controlConversions, variantVisitors, variantConversions);
+            const confidence = zScoreToConfidence(zScore);
+
+            const results = {
+                controlRate,
+                variantRate,
+                confidence,
+                isSignificant: confidence > 95
+            };
+
+            // Update test UI
+            document.getElementById('test-control-rate').textContent = `${results.controlRate.toFixed(1)}%`;
+            document.getElementById('test-variant-rate').textContent = `${results.variantRate.toFixed(1)}%`;
+            document.getElementById('test-confidence-level').textContent = `${results.confidence}%`;
+            document.getElementById('test-results-section').classList.remove('hidden');
+
+            const verdictBadge = document.getElementById('test-verdict-badge');
+            verdictBadge.classList.remove('significant', 'not-significant');
+            if (confidence > 95) {
+                verdictBadge.classList.add('significant');
+                verdictBadge.textContent = 'Significant Winner!';
+            } else {
+                verdictBadge.classList.add('not-significant');
+                verdictBadge.textContent = 'Not Significant yet';
+            }
+
+            return results;
+        }
+
+        // Edge Case Tests
+        function testZeroVisitorsControl() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            controlVisitors.value = '0';
+            controlConversions.value = '0';
+            variantVisitors.value = '100';
+            variantConversions.value = '50';
+
+            calculateBtn.click();
+
+            const controlRate = document.getElementById('test-control-rate').textContent;
+            const variantRate = document.getElementById('test-variant-rate').textContent;
+            const confidenceLevel = document.getElementById('test-confidence-level').textContent;
+
+            const passed = !controlRate.includes('NaN') && 
+                          !variantRate.includes('NaN') && 
+                          !confidenceLevel.includes('NaN') &&
+                          controlRate === '0.0%' &&
+                          confidenceLevel === '0%';
+
+            recordTest('Edge Cases', 'Zero visitors in control group displays appropriate values', passed,
+                passed ? 'Control rate: 0.0%, Confidence: 0%, No NaN values' : 
+                `Failed: Control=${controlRate}, Variant=${variantRate}, Confidence=${confidenceLevel}`);
+        }
+
+        function testZeroVisitorsVariant() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            controlVisitors.value = '100';
+            controlConversions.value = '50';
+            variantVisitors.value = '0';
+            variantConversions.value = '0';
+
+            calculateBtn.click();
+
+            const controlRate = document.getElementById('test-control-rate').textContent;
+            const variantRate = document.getElementById('test-variant-rate').textContent;
+            const confidenceLevel = document.getElementById('test-confidence-level').textContent;
+
+            const passed = !controlRate.includes('NaN') && 
+                          !variantRate.includes('NaN') && 
+                          !confidenceLevel.includes('NaN') &&
+                          variantRate === '0.0%' &&
+                          confidenceLevel === '0%';
+
+            recordTest('Edge Cases', 'Zero visitors in variant group displays appropriate values', passed,
+                passed ? 'Variant rate: 0.0%, Confidence: 0%, No NaN values' : 
+                `Failed: Control=${controlRate}, Variant=${variantRate}, Confidence=${confidenceLevel}`);
+        }
+
+        function testZeroConversionsBothGroups() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            controlVisitors.value = '100';
+            controlConversions.value = '0';
+            variantVisitors.value = '100';
+            variantConversions.value = '0';
+
+            calculateBtn.click();
+
+            const controlRate = document.getElementById('test-control-rate').textContent;
+            const variantRate = document.getElementById('test-variant-rate').textContent;
+            const confidenceLevel = document.getElementById('test-confidence-level').textContent;
+            const verdictBadge = document.getElementById('test-verdict-badge');
+
+            const passed = controlRate === '0.0%' &&
+                          variantRate === '0.0%' &&
+                          confidenceLevel === '0%' &&
+                          verdictBadge.textContent === 'Not Significant yet' &&
+                          verdictBadge.classList.contains('not-significant');
+
+            recordTest('Edge Cases', 'Zero conversions in both groups shows 0% confidence', passed,
+                passed ? 'Both rates: 0.0%, Confidence: 0%, Badge: Not Significant yet' : 
+                `Failed: Control=${controlRate}, Variant=${variantRate}, Confidence=${confidenceLevel}, Badge=${verdictBadge.textContent}`);
+        }
+
+        function testIdenticalConversionRates() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            controlVisitors.value = '100';
+            controlConversions.value = '50';
+            variantVisitors.value = '100';
+            variantConversions.value = '50';
+
+            calculateBtn.click();
+
+            const controlRate = document.getElementById('test-control-rate').textContent;
+            const variantRate = document.getElementById('test-variant-rate').textContent;
+            const confidenceLevel = document.getElementById('test-confidence-level').textContent;
+            const verdictBadge = document.getElementById('test-verdict-badge');
+
+            const passed = controlRate === '50.0%' &&
+                          variantRate === '50.0%' &&
+                          confidenceLevel === '0%' &&
+                          verdictBadge.textContent === 'Not Significant yet' &&
+                          verdictBadge.classList.contains('not-significant');
+
+            recordTest('Edge Cases', 'Identical conversion rates show low confidence', passed,
+                passed ? 'Both rates: 50.0%, Confidence: 0%, Badge: Not Significant yet' : 
+                `Failed: Control=${controlRate}, Variant=${variantRate}, Confidence=${confidenceLevel}, Badge=${verdictBadge.textContent}`);
+        }
+
+        // UI Elements Tests
+        function testTwoInputCardsExist() {
+            setupTestApp();
+            
+            const inputCards = document.querySelectorAll('#test-app .input-card');
+            const passed = inputCards.length === 2;
+
+            recordTest('UI Elements', 'UI displays two input cards', passed,
+                passed ? 'Found 2 input cards' : `Found ${inputCards.length} input cards`);
+        }
+
+        function testInputCardsLabeled() {
+            setupTestApp();
+            
+            const inputCards = document.querySelectorAll('#test-app .input-card');
+            const controlLabel = inputCards[0]?.querySelector('h2')?.textContent;
+            const variantLabel = inputCards[1]?.querySelector('h2')?.textContent;
+
+            const passed = controlLabel === 'Group A (Control)' && variantLabel === 'Group B (Variant)';
+
+            recordTest('UI Elements', 'Input cards labeled "Group A (Control)" and "Group B (Variant)"', passed,
+                passed ? 'Labels correct' : `Control: "${controlLabel}", Variant: "${variantLabel}"`);
+        }
+
+        function testInputFieldsExist() {
+            setupTestApp();
+            
+            const inputCards = document.querySelectorAll('#test-app .input-card');
+            let passed = true;
+            let details = '';
+
+            inputCards.forEach((card, index) => {
+                const labels = card.querySelectorAll('label');
+                const inputs = card.querySelectorAll('input');
+
+                if (labels.length !== 2 || inputs.length !== 2) {
+                    passed = false;
+                    details = `Card ${index + 1}: Found ${labels.length} labels and ${inputs.length} inputs`;
+                }
+
+                if (labels[0]?.textContent !== 'Visitors' || labels[1]?.textContent !== 'Conversions') {
+                    passed = false;
+                    details = `Card ${index + 1}: Label text incorrect`;
+                }
+
+                if (inputs[0]?.type !== 'number' || inputs[1]?.type !== 'number') {
+                    passed = false;
+                    details = `Card ${index + 1}: Input types incorrect`;
+                }
+            });
+
+            recordTest('UI Elements', 'Each card has Visitors and Conversions input fields', passed,
+                passed ? 'All input fields correct' : details);
+        }
+
+        function testCalculateButtonExists() {
+            setupTestApp();
+            
+            const calculateBtn = document.getElementById('test-calculate-btn');
+            const passed = calculateBtn !== null && 
+                          calculateBtn.textContent === 'Calculate Significance' &&
+                          calculateBtn.classList.contains('calculate-button');
+
+            recordTest('UI Elements', 'Prominent calculate button exists', passed,
+                passed ? 'Button found with correct text and class' : 'Button not found or incorrect');
+        }
+
+        function testTitleDisplayed() {
+            setupTestApp();
+            
+            const title = document.querySelector('#test-app header h1');
+            const passed = title !== null && title.textContent === 'A/B Test Significance Calculator';
+
+            recordTest('UI Elements', 'Title "A/B Test Significance Calculator" displayed', passed,
+                passed ? 'Title correct' : `Title: "${title?.textContent}"`);
+        }
+
+        function testResultsSectionStructure() {
+            setupTestApp();
+            
+            const resultsSection = document.getElementById('test-results-section');
+            const controlRate = document.getElementById('test-control-rate');
+            const variantRate = document.getElementById('test-variant-rate');
+            const confidenceLevel = document.getElementById('test-confidence-level');
+            const verdictBadge = document.getElementById('test-verdict-badge');
+
+            const passed = resultsSection !== null && 
+                          controlRate !== null && 
+                          variantRate !== null && 
+                          confidenceLevel !== null && 
+                          verdictBadge !== null;
+
+            recordTest('UI Elements', 'Results section has all required elements', passed,
+                passed ? 'All result elements found' : 'Some result elements missing');
+        }
+
+        // Styling Tests
+        function testInterFont() {
+            const body = document.body;
+            const computedStyle = window.getComputedStyle(body);
+            const fontFamily = computedStyle.fontFamily;
+
+            const passed = fontFamily.includes('Inter');
+
+            recordTest('Styling', 'Application uses Inter font family', passed,
+                passed ? 'Inter font detected' : `Font family: ${fontFamily}`);
+        }
+
+        function testWhiteCardBackgrounds() {
+            setupTestApp();
+            
+            const inputCards = document.querySelectorAll('#test-app .input-card');
+            let passed = true;
+            let details = '';
+
+            inputCards.forEach((card, index) => {
+                const computedStyle = window.getComputedStyle(card);
+                const backgroundColor = computedStyle.backgroundColor;
+
+                // Check for white or close to white
+                if (!backgroundColor.match(/rgb\(255,\s*255,\s*255\)/)) {
+                    passed = false;
+                    details = `Card ${index + 1}: ${backgroundColor}`;
+                }
+            });
+
+            recordTest('Styling', 'Input cards have white backgrounds', passed,
+                passed ? 'All cards have white backgrounds' : details);
+        }
+
+        function testLightGrayPageBackground() {
+            const body = document.body;
+            const computedStyle = window.getComputedStyle(body);
+            const backgroundColor = computedStyle.backgroundColor;
+
+            // Check for light gray (#f5f5f5 = rgb(245, 245, 245))
+            const passed = backgroundColor.match(/rgb\(245,\s*245,\s*245\)/);
+
+            recordTest('Styling', 'Page has light gray background', passed,
+                passed ? 'Background color correct' : `Background: ${backgroundColor}`);
+        }
+
+        function testCalculateButtonStyling() {
+            setupTestApp();
+            
+            const calculateBtn = document.getElementById('test-calculate-btn');
+            const computedStyle = window.getComputedStyle(calculateBtn);
+            const backgroundColor = computedStyle.backgroundColor;
+            const color = computedStyle.color;
+
+            // Check for blue background and white text
+            const passed = backgroundColor.match(/rgb\(59,\s*130,\s*246\)/) &&
+                          color.match(/rgb\(255,\s*255,\s*255\)/);
+
+            recordTest('Styling', 'Calculate button has primary blue styling', passed,
+                passed ? 'Button styling correct' : `BG: ${backgroundColor}, Color: ${color}`);
+        }
+
+        function testSignificantBadgeStyling() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            // Set values for high confidence
+            controlVisitors.value = '1000';
+            controlConversions.value = '100';
+            variantVisitors.value = '1000';
+            variantConversions.value = '200';
+
+            calculateBtn.click();
+
+            const verdictBadge = document.getElementById('test-verdict-badge');
+            const computedStyle = window.getComputedStyle(verdictBadge);
+            const backgroundColor = computedStyle.backgroundColor;
+
+            const passed = verdictBadge.classList.contains('significant') &&
+                          backgroundColor.match(/rgb\(16,\s*185,\s*129\)/);
+
+            recordTest('Styling', 'Significant verdict badge has green styling', passed,
+                passed ? 'Green badge styling correct' : `BG: ${backgroundColor}, Classes: ${verdictBadge.className}`);
+        }
+
+        function testNotSignificantBadgeStyling() {
+            setupTestApp();
+            
+            const controlVisitors = document.getElementById('test-control-visitors');
+            const controlConversions = document.getElementById('test-control-conversions');
+            const variantVisitors = document.getElementById('test-variant-visitors');
+            const variantConversions = document.getElementById('test-variant-conversions');
+            const calculateBtn = document.getElementById('test-calculate-btn');
+
+            // Set values for low confidence
+            controlVisitors.value = '100';
+            controlConversions.value = '50';
+            variantVisitors.value = '100';
+            variantConversions.value = '50';
+
+            calculateBtn.click();
+
+            const verdictBadge = document.getElementById('test-verdict-badge');
+            const computedStyle = window.getComputedStyle(verdictBadge);
+            const backgroundColor = computedStyle.backgroundColor;
+
+            const passed = verdictBadge.classList.contains('not-significant') &&
+                          backgroundColor.match(/rgb\(107,\s*114,\s*128\)/);
+
+            recordTest('Styling', 'Not significant verdict badge has gray styling', passed,
+                passed ? 'Gray badge styling correct' : `BG: ${backgroundColor}, Classes: ${verdictBadge.className}`);
+        }
+
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = '';
+
+            // Group tests by suite
+            const suites = {};
+            testResults.forEach(test => {
+                if (!suites[test.suite]) {
+                    suites[test.suite] = [];
+                }
+                suites[test.suite].push(test);
+            });
+
+            let totalPass = 0;
+            let totalFail = 0;
+
+            // Display each suite
+            Object.keys(suites).forEach(suiteName => {
+                const suiteDiv = document.createElement('div');
+                suiteDiv.className = 'test-suite';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'test-suite-title';
+                titleDiv.textContent = suiteName;
+                suiteDiv.appendChild(titleDiv);
+
+                suites[suiteName].forEach(test => {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = `test-case ${test.passed ? 'pass' : 'fail'}`;
+
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'test-name';
+                    nameDiv.textContent = `${test.passed ? '✓' : '✗'} ${test.name}`;
+
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'test-details';
+                    detailsDiv.textContent = test.details;
+
+                    testDiv.appendChild(nameDiv);
+                    if (test.details) {
+                        testDiv.appendChild(detailsDiv);
+                    }
+
+                    suiteDiv.appendChild(testDiv);
+
+                    if (test.passed) totalPass++;
+                    else totalFail++;
+                });
+
+                container.appendChild(suiteDiv);
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.textContent = `Results: ${totalPass} passed, ${totalFail} failed out of ${testResults.length} tests`;
+            container.appendChild(summary);
+        }
+
+        function runAllTests() {
+            testResults.length = 0;
+
+            console.log('Running unit tests...');
+
+            // Edge Case Tests
+            testZeroVisitorsControl();
+            testZeroVisitorsVariant();
+            testZeroConversionsBothGroups();
+            testIdenticalConversionRates();
+
+            // UI Elements Tests
+            testTwoInputCardsExist();
+            testInputCardsLabeled();
+            testInputFieldsExist();
+            testCalculateButtonExists();
+            testTitleDisplayed();
+            testResultsSectionStructure();
+
+            // Styling Tests
+            testInterFont();
+            testWhiteCardBackgrounds();
+            testLightGrayPageBackground();
+            testCalculateButtonStyling();
+            testSignificantBadgeStyling();
+            testNotSignificantBadgeStyling();
+
+            displayResults();
+
+            console.log('Unit tests complete!');
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* CSS Variables for color scheme */
+:root {
+    --color-background: #f5f5f5;
+    --color-card: #ffffff;
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-success: #10b981;
+    --color-neutral: #6b7280;
+    --color-text-primary: #1f2937;
+    --color-text-secondary: #6b7280;
+    --color-border: #e5e7eb;
+    --spacing-unit: 8px;
+}
+
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    padding: calc(var(--spacing-unit) * 4);
+}
+
+/* Container */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: calc(var(--spacing-unit) * 6);
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+/* Input Section - Two-column grid */
+.input-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(var(--spacing-unit) * 3);
+    margin-bottom: calc(var(--spacing-unit) * 4);
+}
+
+/* Input Cards */
+.input-card {
+    background-color: var(--color-card);
+    border-radius: calc(var(--spacing-unit) * 1.5);
+    padding: calc(var(--spacing-unit) * 3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.input-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: calc(var(--spacing-unit) * 3);
+    color: var(--color-text-primary);
+}
+
+.input-group {
+    margin-bottom: calc(var(--spacing-unit) * 2);
+}
+
+.input-group:last-child {
+    margin-bottom: 0;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: calc(var(--spacing-unit) * 1);
+}
+
+.input-group input {
+    width: 100%;
+    padding: calc(var(--spacing-unit) * 1.5);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--spacing-unit) * 1);
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.input-group input.input-error {
+    border-color: #ef4444;
+}
+
+/* Error message styling */
+.error-message {
+    margin-top: calc(var(--spacing-unit) * 2);
+    padding: calc(var(--spacing-unit) * 1.5);
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-radius: calc(var(--spacing-unit) * 1);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Calculate Button - Prominent primary action */
+.calculate-button {
+    width: 100%;
+    padding: calc(var(--spacing-unit) * 2);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: calc(var(--spacing-unit) * 1);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: calc(var(--spacing-unit) * 4);
+}
+
+.calculate-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.calculate-button:active {
+    transform: translateY(1px);
+}
+
+/* Results Section */
+.results-section {
+    background-color: var(--color-card);
+    border-radius: calc(var(--spacing-unit) * 1.5);
+    padding: calc(var(--spacing-unit) * 3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.results-section.hidden {
+    display: none;
+}
+
+.results-content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 2);
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: calc(var(--spacing-unit) * 1.5);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.result-item:last-of-type {
+    border-bottom: none;
+}
+
+.result-label {
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.result-value {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--color-text-primary);
+}
+
+/* Verdict Badge */
+.verdict-badge {
+    margin-top: calc(var(--spacing-unit) * 2);
+    padding: calc(var(--spacing-unit) * 2);
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.125rem;
+    border-radius: calc(var(--spacing-unit) * 1);
+}
+
+.verdict-badge.significant {
+    background-color: var(--color-success);
+    color: white;
+}
+
+.verdict-badge.not-significant {
+    background-color: var(--color-neutral);
+    color: white;
+}
+
+/* Screen reader only content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus styles for keyboard navigation */
+input:focus,
+button:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Responsive Design - Stack cards on mobile */
+@media (max-width: 640px) {
+    body {
+        padding: calc(var(--spacing-unit) * 2);
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .input-section {
+        grid-template-columns: 1fr;
+        gap: calc(var(--spacing-unit) * 2);
+    }
+}

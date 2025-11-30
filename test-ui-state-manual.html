@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual UI State Management Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-instructions {
+            background-color: #e3f2fd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+        }
+        .test-instructions h2 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .test-instructions ol {
+            margin: 10px 0;
+        }
+        .test-instructions li {
+            margin: 8px 0;
+        }
+        .expected-result {
+            background-color: #f1f8e9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 3px solid #8bc34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-instructions">
+            <h2>UI State Management Test Instructions</h2>
+            <p><strong>Task 8: Implement UI state management</strong></p>
+            <p>This test verifies that:</p>
+            <ul>
+                <li>✓ clearResults function exists and resets results section</li>
+                <li>✓ Input change event listeners clear results when inputs are modified</li>
+                <li>✓ Results only display after calculate button is clicked</li>
+            </ul>
+            
+            <h3>Test Procedure:</h3>
+            <ol>
+                <li>
+                    <strong>Initial State Test:</strong>
+                    <div class="expected-result">
+                        Expected: Results section should be hidden on page load
+                    </div>
+                </li>
+                <li>
+                    <strong>Calculate Results Test:</strong>
+                    <ul>
+                        <li>Enter Control: Visitors = 1000, Conversions = 100</li>
+                        <li>Enter Variant: Visitors = 1000, Conversions = 150</li>
+                        <li>Click "Calculate Significance" button</li>
+                    </ul>
+                    <div class="expected-result">
+                        Expected: Results section should appear with conversion rates and confidence level
+                    </div>
+                </li>
+                <li>
+                    <strong>Input Change Clears Results Test:</strong>
+                    <ul>
+                        <li>Change Control Visitors to 2000</li>
+                    </ul>
+                    <div class="expected-result">
+                        Expected: Results section should immediately disappear/hide
+                    </div>
+                </li>
+                <li>
+                    <strong>Recalculate Test:</strong>
+                    <ul>
+                        <li>Click "Calculate Significance" button again</li>
+                    </ul>
+                    <div class="expected-result">
+                        Expected: Results section should reappear with updated values
+                    </div>
+                </li>
+                <li>
+                    <strong>Multiple Input Changes Test:</strong>
+                    <ul>
+                        <li>Change Control Conversions</li>
+                        <li>Change Variant Visitors</li>
+                        <li>Change Variant Conversions</li>
+                    </ul>
+                    <div class="expected-result">
+                        Expected: Results should remain hidden after each change
+                    </div>
+                </li>
+                <li>
+                    <strong>Final Calculation Test:</strong>
+                    <ul>
+                        <li>Click "Calculate Significance" button</li>
+                    </ul>
+                    <div class="expected-result">
+                        Expected: Results section should appear with new calculated values
+                    </div>
+                </li>
+            </ol>
+            
+            <h3>Success Criteria:</h3>
+            <ul>
+                <li>✓ Results section is hidden on initial page load</li>
+                <li>✓ Results appear only after clicking Calculate button</li>
+                <li>✓ Any input change immediately hides the results section</li>
+                <li>✓ Results can be recalculated after input changes</li>
+                <li>✓ No errors in browser console</li>
+            </ul>
+        </div>
+
+        <header>
+            <h1>A/B Test Significance Calculator</h1>
+        </header>
+
+        <section class="input-section">
+            <div class="input-card">
+                <h2>Group A (Control)</h2>
+                <div class="input-group">
+                    <label for="control-visitors">Visitors</label>
+                    <input type="number" id="control-visitors" min="0" step="1" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label for="control-conversions">Conversions</label>
+                    <input type="number" id="control-conversions" min="0" step="1" placeholder="0">
+                </div>
+            </div>
+
+            <div class="input-card">
+                <h2>Group B (Variant)</h2>
+                <div class="input-group">
+                    <label for="variant-visitors">Visitors</label>
+                    <input type="number" id="variant-visitors" min="0" step="1" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label for="variant-conversions">Conversions</label>
+                    <input type="number" id="variant-conversions" min="0" step="1" placeholder="0">
+                </div>
+            </div>
+        </section>
+
+        <button id="calculate-btn" class="calculate-button">Calculate Significance</button>
+
+        <section id="results-section" class="results-section hidden">
+            <div class="results-content">
+                <div class="result-item">
+                    <span class="result-label">Control Conversion Rate:</span>
+                    <span id="control-rate" class="result-value">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Variant Conversion Rate:</span>
+                    <span id="variant-rate" class="result-value">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Confidence Level:</span>
+                    <span id="confidence-level" class="result-value">-</span>
+                </div>
+                <div id="verdict-badge" class="verdict-badge"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="calculator.js"></script>
+    <script>
+        // Add console logging to verify clearResults is being called
+        const originalClearResults = window.clearResults;
+        window.clearResults = function() {
+            console.log('✓ clearResults() called - Results section should be hidden');
+            return originalClearResults.apply(this, arguments);
+        };
+        
+        console.log('Manual UI State Management Test loaded');
+        console.log('Follow the test instructions above to verify functionality');
+    </script>
+</body>
+</html>

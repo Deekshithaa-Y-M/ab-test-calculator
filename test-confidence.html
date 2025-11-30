@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidence Calculation Tests - A/B Calculator</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #1f2937;
+        }
+        .test-results {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .test-case {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-case.pass {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .test-case.fail {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        .test-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .test-details {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .run-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .run-button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Property-Based Tests for Confidence Calculation</h1>
+    <button class="run-button" onclick="runAllTests()">Run Tests</button>
+    <div id="test-results" class="test-results"></div>
+
+    <script src="calculator.js"></script>
+    <script>
+        // Import confidence calculation functions from calculator.js
+        // normalCDF and zScoreToConfidence are already defined in calculator.js
+
+        // Simple property-based testing utilities
+        function randomFloat(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // Test runner
+        const testResults = [];
+
+        function recordTest(name, passed, details = '') {
+            testResults.push({ name, passed, details });
+        }
+
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = '';
+
+            let passCount = 0;
+            let failCount = 0;
+
+            testResults.forEach(test => {
+                const div = document.createElement('div');
+                div.className = `test-case ${test.passed ? 'pass' : 'fail'}`;
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'test-name';
+                nameDiv.textContent = `${test.passed ? '✓' : '✗'} ${test.name}`;
+                
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'test-details';
+                detailsDiv.textContent = test.details;
+                
+                div.appendChild(nameDiv);
+                if (test.details) {
+                    div.appendChild(detailsDiv);
+                }
+                
+                container.appendChild(div);
+
+                if (test.passed) passCount++;
+                else failCount++;
+            });
+
+            const summary = document.createElement('div');
+            summary.className = 'summary';
+            summary.textContent = `Results: ${passCount} passed, ${failCount} failed out of ${testResults.length} tests`;
+            container.appendChild(summary);
+        }
+
+        // **Feature: ab-test-calculator, Property 6: Confidence level is formatted correctly**
+        function testProperty6_ConfidenceFormatted() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const zScore = randomFloat(-10, 10);
+                const confidence = zScoreToConfidence(zScore);
+                
+                // Check that the result is a number
+                if (typeof confidence !== 'number' || isNaN(confidence)) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Result is not a valid number for z-score=${zScore}`;
+                    }
+                    continue;
+                }
+                
+                // Check that it has no decimal places (is an integer)
+                if (!Number.isInteger(confidence)) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Confidence ${confidence} is not an integer for z-score=${zScore}`;
+                    }
+                    continue;
+                }
+                
+                // Verify the value is between 0 and 100 (inclusive)
+                if (confidence < 0 || confidence > 100) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Confidence ${confidence} is out of range [0, 100] for z-score=${zScore}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 6: Confidence level is formatted correctly',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // **Feature: ab-test-calculator, Property 8: Z-score to confidence conversion is correct**
+        function testProperty8_ZScoreToConfidenceCorrect() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const zScore = randomFloat(-10, 10);
+                const confidence = zScoreToConfidence(zScore);
+                
+                // Manually calculate confidence using the formula to verify correctness
+                // Formula: confidence = 2 × CDF(|z|) - 1
+                const expectedConfidence = (2 * normalCDF(Math.abs(zScore)) - 1) * 100;
+                const expectedConfidenceRounded = Math.round(expectedConfidence);
+                
+                // The calculated confidence should match the formula
+                if (confidence !== expectedConfidenceRounded) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Expected ${expectedConfidenceRounded} but got ${confidence} for z-score=${zScore}`;
+                    }
+                    continue;
+                }
+                
+                // Verify confidence is within rounding tolerance of expected
+                if (Math.abs(confidence - expectedConfidence) >= 0.5) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Confidence ${confidence} differs from expected ${expectedConfidence} by more than 0.5 for z-score=${zScore}`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 8: Z-score to confidence conversion is correct',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Edge case: Z-score of 0 should give confidence near 0%
+        function testEdgeCase_ZScoreZero() {
+            const confidence = zScoreToConfidence(0);
+            const passed = confidence === 0;
+            
+            recordTest(
+                'Edge Case: Z-score of 0 gives confidence of 0%',
+                passed,
+                passed ? 'Z-score of 0 correctly gives 0% confidence' : `Expected 0 but got ${confidence}`
+            );
+        }
+
+        // Edge case: Large positive z-scores should give confidence near 100%
+        function testEdgeCase_LargeZScores() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const zScore = randomFloat(3, 10);
+                const confidence = zScoreToConfidence(zScore);
+                
+                // Large z-scores should result in high confidence (> 95%)
+                if (confidence <= 95) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Z-score ${zScore} gave confidence ${confidence}%, expected > 95%`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Edge Case: Large z-scores give high confidence',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Edge case: Small z-scores should give low confidence
+        function testEdgeCase_SmallZScores() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const zScore = randomFloat(-1, 1);
+                const confidence = zScoreToConfidence(zScore);
+                
+                // Small z-scores should result in low confidence (< 70%)
+                if (confidence >= 70) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Z-score ${zScore} gave confidence ${confidence}%, expected < 70%`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Edge Case: Small z-scores give low confidence',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Verify confidence is symmetric for positive and negative z-scores
+        function testProperty8_ConfidenceSymmetric() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const zScore = randomFloat(0.1, 10);
+                const confidencePositive = zScoreToConfidence(zScore);
+                const confidenceNegative = zScoreToConfidence(-zScore);
+                
+                // Confidence should be the same for z and -z (two-tailed test)
+                if (confidencePositive !== confidenceNegative) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Z-score ${zScore} gave ${confidencePositive}% but -${zScore} gave ${confidenceNegative}%`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 8: Confidence is symmetric for positive and negative z-scores',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Verify confidence increases monotonically with |z-score|
+        function testProperty8_ConfidenceMonotonic() {
+            const numRuns = 100;
+            let failures = 0;
+            let failureExample = '';
+
+            for (let i = 0; i < numRuns; i++) {
+                const z1 = randomFloat(0, 5);
+                const delta = randomFloat(0.1, 1);
+                const z2 = z1 + delta;
+                
+                const confidence1 = zScoreToConfidence(z1);
+                const confidence2 = zScoreToConfidence(z2);
+                
+                // Higher z-score should give higher or equal confidence
+                if (confidence2 < confidence1) {
+                    failures++;
+                    if (!failureExample) {
+                        failureExample = `Z-score ${z2} gave ${confidence2}% but smaller z-score ${z1} gave ${confidence1}%`;
+                    }
+                }
+            }
+
+            recordTest(
+                'Property 8: Confidence increases with absolute z-score',
+                failures === 0,
+                failures === 0 ? `Passed all ${numRuns} iterations` : `${failures} failures. Example: ${failureExample}`
+            );
+        }
+
+        // Known values test: z-score of ~1.96 should give ~95% confidence
+        function testKnownValue_1_96() {
+            const confidence = zScoreToConfidence(1.96);
+            const passed = confidence >= 94 && confidence <= 96;
+            
+            recordTest(
+                'Known Value: Z-score of 1.96 gives approximately 95% confidence',
+                passed,
+                passed ? `Z-score 1.96 correctly gives ${confidence}% confidence` : `Expected ~95% but got ${confidence}%`
+            );
+        }
+
+        // Known values test: z-score of ~2.58 should give ~99% confidence
+        function testKnownValue_2_58() {
+            const confidence = zScoreToConfidence(2.58);
+            const passed = confidence >= 98 && confidence <= 100;
+            
+            recordTest(
+                'Known Value: Z-score of 2.58 gives approximately 99% confidence',
+                passed,
+                passed ? `Z-score 2.58 correctly gives ${confidence}% confidence` : `Expected ~99% but got ${confidence}%`
+            );
+        }
+
+        function runAllTests() {
+            testResults.length = 0; // Clear previous results
+            
+            console.log('Running property-based tests for confidence calculation...');
+            
+            // Property 6 tests
+            testProperty6_ConfidenceFormatted();
+            
+            // Property 8 tests
+            testProperty8_ZScoreToConfidenceCorrect();
+            testProperty8_ConfidenceSymmetric();
+            testProperty8_ConfidenceMonotonic();
+            
+            // Edge cases
+            testEdgeCase_ZScoreZero();
+            testEdgeCase_LargeZScores();
+            testEdgeCase_SmallZScores();
+            
+            // Known values
+            testKnownValue_1_96();
+            testKnownValue_2_58();
+            
+            displayResults();
+            
+            console.log('Tests complete!');
+        }
+
+        // Run tests on page load
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>
